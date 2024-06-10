@@ -6,6 +6,7 @@ import Question from "./components/Question";
 import Loader from "./components/Loader";
 import Error from "./components/Error";
 import NextButton from "./components/NextButton";
+import Progress from "./components/Progress";
 const initialState = {
   questions: [],
   status: "loading",
@@ -49,8 +50,13 @@ export default function App() {
       .catch((error) => dispatch({ type: "dataFailed" }));
   }, []);
   const numberOfQuestions = questions.length;
+  const maxPossiblePoints = questions.reduce(
+    (prev, curr) => prev + curr.points,
+    0
+  );
   return (
     <div className="app">
+      {points}
       <Header />
       <Main>
         {status === "loading" && <Loader />}
@@ -63,12 +69,18 @@ export default function App() {
         )}
         {status === "active" && (
           <>
+            <Progress
+              index={index}
+              numberOfQuestions={numberOfQuestions}
+              points={points}
+              maxPossiblePoints={maxPossiblePoints}
+            />
             <Question
               question={questions[index]}
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton dispatch={dispatch} answer={answer}/>
+            <NextButton dispatch={dispatch} answer={answer} />
           </>
         )}
       </Main>
