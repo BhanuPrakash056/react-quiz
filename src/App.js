@@ -5,10 +5,14 @@ import StartScreen from "./components/StartScreen";
 import Question from "./components/Question";
 import Loader from "./components/Loader";
 import Error from "./components/Error";
+import NextButton from "./components/NextButton";
+import Progress from "./components/Progress";
 const initialState = {
   questions: [],
   status: "loading",
   index: 0,
+  answer: null,
+  points: 0,
 };
 function reducer(state, action) {
   switch (action.type) {
@@ -18,12 +22,24 @@ function reducer(state, action) {
       return { ...state, questions: [], status: "failed" };
     case "start":
       return { ...state, status: "active" };
+    case "newAnswer":
+      const question = state.questions.at(state.index);
+      return {
+        ...state,
+        answer: action.payload,
+        points:
+          action.payload === question.correctOption
+            ? state.points + question.points
+            : state.points,
+      };
+    case "nextQuestion":
+      return { ...state, answer: null, index: state.index + 1 };
     default:
       throw new Error("Unexpected action");
   }
 }
 export default function App() {
-  const [{ questions, status, index }, dispatch] = useReducer(
+  const [{ questions, status, index, answer, points }, dispatch] = useReducer(
     reducer,
     initialState
   );
@@ -34,8 +50,13 @@ export default function App() {
       .catch((error) => dispatch({ type: "dataFailed" }));
   }, []);
   const numberOfQuestions = questions.length;
+  const maxPossiblePoints = questions.reduce(
+    (prev, curr) => prev + curr.points,
+    0
+  );
   return (
     <div className="app">
+      {points}
       <Header />
       <Main>
         {status === "loading" && <Loader />}
@@ -46,7 +67,22 @@ export default function App() {
             dispatch={dispatch}
           />
         )}
-        {status === "active" && <Question question={questions[index]} />}
+        {status === "active" && (
+          <>
+            <Progress
+              index={index}
+              numberOfQuestions={numberOfQuestions}
+              points={points}
+              maxPossiblePoints={maxPossiblePoints}
+            />
+            <Question
+              question={questions[index]}
+              dispatch={dispatch}
+              answer={answer}
+            />
+            <NextButton dispatch={dispatch} answer={answer} />
+          </>
+        )}
       </Main>
     </div>
   );
