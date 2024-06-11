@@ -7,13 +7,18 @@ import Loader from "./components/Loader";
 import Error from "./components/Error";
 import NextButton from "./components/NextButton";
 import Progress from "./components/Progress";
+import FinishScreen from "./components/FinishScreen";
+import Footer from "./components/Footer";
+import Timer from "./components/Timer";
 const initialState = {
   questions: [],
   status: "loading",
   index: 0,
   answer: null,
   points: 0,
+  secondRemaining: null,
 };
+const SEC_PER_QUESTION = 30;
 function reducer(state, action) {
   switch (action.type) {
     case "dataReceived":
@@ -21,7 +26,11 @@ function reducer(state, action) {
     case "dataFailed":
       return { ...state, questions: [], status: "failed" };
     case "start":
-      return { ...state, status: "active" };
+      return {
+        ...state,
+        status: "active",
+        secondRemaining: state.questions.length * SEC_PER_QUESTION,
+      };
     case "newAnswer":
       const question = state.questions.at(state.index);
       return {
@@ -34,15 +43,25 @@ function reducer(state, action) {
       };
     case "nextQuestion":
       return { ...state, answer: null, index: state.index + 1 };
+    case "finish":
+      return { ...state, status: "finished" };
+    case "restart":
+      return { ...state, status: "ready", index: 0, answer: null, points: 0 };
+    case "tick":
+      return {
+        ...state,
+        secondRemaining: state.secondRemaining - 1,
+        status: state.secondRemaining === 0 ? "finished" : state.status,
+      };
     default:
       throw new Error("Unexpected action");
   }
 }
 export default function App() {
-  const [{ questions, status, index, answer, points }, dispatch] = useReducer(
-    reducer,
-    initialState
-  );
+  const [
+    { questions, status, index, answer, points, secondRemaining },
+    dispatch,
+  ] = useReducer(reducer, initialState);
   useEffect(() => {
     fetch("http://localhost:8000/questions")
       .then((res) => res.json())
@@ -54,9 +73,9 @@ export default function App() {
     (prev, curr) => prev + curr.points,
     0
   );
+
   return (
     <div className="app">
-      {points}
       <Header />
       <Main>
         {status === "loading" && <Loader />}
@@ -74,14 +93,29 @@ export default function App() {
               numberOfQuestions={numberOfQuestions}
               points={points}
               maxPossiblePoints={maxPossiblePoints}
+              answer={answer}
             />
             <Question
               question={questions[index]}
               dispatch={dispatch}
               answer={answer}
             />
-            <NextButton dispatch={dispatch} answer={answer} />
+            <Footer>
+              <Timer secondRemaining={secondRemaining} dispatch={dispatch} />
+              <NextButton
+                dispatch={dispatch}
+                index={index}
+                numberOfQuestions={numberOfQuestions}
+              />
+            </Footer>
           </>
+        )}
+        {status === "finished" && (
+          <FinishScreen
+            dispatch={dispatch}
+            points={points}
+            maxPossiblePoints={maxPossiblePoints}
+          ></FinishScreen>
         )}
       </Main>
     </div>
