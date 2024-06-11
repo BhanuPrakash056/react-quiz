@@ -1,5 +1,6 @@
 import Options from "./Options";
-function Question({ question, dispatch,answer }) {
+
+function Question({ question, dispatch, answer }) {
   return (
     <div>
       <h3>{question.question}</h3>
